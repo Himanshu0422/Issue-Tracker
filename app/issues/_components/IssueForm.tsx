@@ -2,22 +2,19 @@
 
 import ErrorMessage from "@/app/components/ErrorMessage";
 import Spinner from "@/app/components/Spinner";
-import { createIssueSchema } from "@/app/validationSchemas";
+import { issueSchema } from "@/app/validationSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Issue } from "@prisma/client";
 import { Button, Callout, TextField } from "@radix-ui/themes";
 import axios from "axios";
 import "easymde/dist/easymde.min.css";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import SimpleMde from "react-simplemde-editor";
 import { z } from "zod";
-const SimpleMde = dynamic(() => import("react-simplemde-editor"), {
-    ssr: false,
-});
 
-type IssueFormData = z.infer<typeof createIssueSchema>;
+type IssueFormData = z.infer<typeof issueSchema>;
 
 interface Props{
     issue? : Issue
@@ -31,18 +28,23 @@ const IssueForm = ({ issue }: { issue?: Issue }) => {
         handleSubmit,
         formState: { errors },
     } = useForm<IssueFormData>({
-        resolver: zodResolver(createIssueSchema),
+        resolver: zodResolver(issueSchema),
     });
     const [error, setError] = useState("");
-    const [isSubmitting, setIsSiubmitting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const onSubmit = async (data: IssueFormData) => {
         try {
-            setIsSiubmitting(true);
-            await axios.post("/api/issues", data);
-            router.push("/issues");
+            setIsSubmitting(true);
+            if(issue){
+                await axios.patch("/api/issues" + issue.id, data);
+            }else{
+                await axios.post("/api/issues", data);
+            }
+            router.push("/issues/list");
+            router.refresh();
         } catch (error) {
-            setIsSiubmitting(false);
+            setIsSubmitting(false);
             setError("Unexpected error occurred");
         }
     };
@@ -70,7 +72,7 @@ const IssueForm = ({ issue }: { issue?: Issue }) => {
                 <ErrorMessage>
                     {errors.description?.message}
                 </ErrorMessage>
-                <Button>Submit new Issue {isSubmitting && <Spinner />}</Button>
+                <Button>{issue ? 'Update Issue' : 'Submit new Issue'} {isSubmitting && <Spinner />}</Button>
             </form>
         </div>
     );
