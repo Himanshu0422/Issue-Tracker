@@ -6,22 +6,28 @@ import { Select } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
+import { useState } from "react";
 
 const AssigneeSelect = ({ issue }: { issue: Issue }) => {
     const { data: users, error, isLoading } = useUsers();
+    const [loading, setLoading] = useState(false);
 
     if (isLoading) return <Skeleton />;
 
     if (error) return null;
 
-    const assignIssue = (userId: string) => {
-        axios
-            .patch("/api/issues/" + issue.id, {
+    const assignIssue = async (userId: string) => {
+        setLoading(true);
+        try {
+            await axios.patch("/api/issues/" + issue.id, {
                 assignedToUserId: userId || null,
-            })
-            .catch(() => {
-                toast.error("Changes could not be saved.");
             });
+            toast.success("Issue assigned successfully!");
+        } catch {
+            toast.error("Changes could not be saved.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -29,6 +35,7 @@ const AssigneeSelect = ({ issue }: { issue: Issue }) => {
             <Select.Root
                 defaultValue={issue.assignedToUserId || ""}
                 onValueChange={assignIssue}
+                disabled={loading}
             >
                 <Select.Trigger placeholder="Assign..." />
                 <Select.Content>
@@ -43,17 +50,21 @@ const AssigneeSelect = ({ issue }: { issue: Issue }) => {
                     </Select.Group>
                 </Select.Content>
             </Select.Root>
+            {loading && (
+                <div className="flex justify-center mt-4">
+                    <div className="h-6 w-6 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            )}
             <Toaster />
         </>
     );
 };
 
-
 const useUsers = () =>
     useQuery<User[]>({
         queryKey: ["users"],
         queryFn: () => axios.get("/api/users").then((res) => res.data),
-        staleTime: 60 * 1000, //60s
+        staleTime: 60 * 1000,
         retry: 3,
     });
 
