@@ -4,6 +4,8 @@ import { issueSchema } from '../../validationSchemas';
 import { getServerSession } from 'next-auth';
 import authOptions from '@/app/auth/authOption';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session)
